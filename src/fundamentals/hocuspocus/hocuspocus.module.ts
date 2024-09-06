@@ -2,6 +2,7 @@ import { Module, Provider } from '@nestjs/common';
 import { Hocuspocus, Server } from '@hocuspocus/server';
 import { PrismaService } from '../prisma/prisma.service';
 import { Database } from '@hocuspocus/extension-database';
+import { DOCUMENT } from 'src/utils/constants';
 
 export const HocuspocuImpl = Symbol('HocuspocuImpl');
 
@@ -19,9 +20,40 @@ const HocuspocusProvider: Provider = {
       extensions: [
         new Database({
           fetch: async ({ documentName }) => {
-            return new Promise((resolve, reject) => {});
+            return new Promise(async (resolve, reject) => {
+              (async () => {
+                try {
+                  const documentId = documentName.replace(DOCUMENT.PREFIX, '');
+
+                  const document = await prisma.documents.findUnique({
+                    where: {
+                      id: documentId,
+                    },
+                  });
+
+                  if (document) resolve(document.data);
+
+                  reject('Document not existed');
+                } catch (error) {
+                  reject(error);
+                }
+              })();
+            });
           },
-          store: async ({ documentName, state }) => {},
+          store: async ({ documentName, state }) => {
+            try {
+              const documentId = documentName.replace(DOCUMENT.PREFIX, '');
+
+              await prisma.documents.update({
+                where: {
+                  id: documentId,
+                },
+                data: {
+                  data: state,
+                },
+              });
+            } catch (error) {}
+          },
         }),
       ],
     });
@@ -32,7 +64,7 @@ const HocuspocusProvider: Provider = {
 };
 
 @Module({
-  providers: [HocuspocusProvider],
+  providers: [HocuspocusProvider, PrismaService],
   exports: [HocuspocusProvider],
 })
 export class HocuspocusModule {}

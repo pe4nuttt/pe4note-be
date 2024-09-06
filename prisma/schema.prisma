@@ -372,7 +372,7 @@ model documents {
   created_at       DateTime      @default(now()) @db.Timestamptz(6)
   title            String?
   iconId           String
-  data             String?
+  data             Bytes?
   inTrash          String?
   bannerUrl        String?
   workspaceId      String        @db.Uuid
